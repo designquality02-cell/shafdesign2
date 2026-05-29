@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHAF - Sistem Manajemen Stok</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Poppins',sans-serif;
+}
+
+body{
+background:linear-gradient(135deg,#0036a3,#1ea7ff);
+min-height:100vh;
+}
+
+.top-login{
+padding:10px 20px;
+background:white;
+display:flex;
+justify-content:flex-end;
+align-items:center;
+gap:10px;
+flex-wrap:wrap;
+}
+
+.topbar{
+width:100%;
+background:#03217d;
+padding:15px 20px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+flex-wrap:wrap;
+gap:10px;
+position:sticky;
+top:0;
+z-index:999;
+}
+
+.logo{
+color:white;
+font-size:30px;
+font-weight:700;
+font-style:italic;
+}
+
+.top-menu{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+}
+
+.top-menu button,
+.btn{
+border:none;
+background:#1567ff;
+color:white;
+padding:12px 18px;
+border-radius:12px;
+cursor:pointer;
+font-weight:600;
+}
+
+.btn-red{
+background:#ff3b57;
+}
+
+.btn-green{
+background:#16b14b;
+}
+
+.btn-orange{
+background:#ff9800;
+}
+
+.main{
+padding:15px;
+}
+
+.top-card{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:15px;
+margin-bottom:20px;
+}
+
+.card,.box{
+background:white;
+border-radius:18px;
+padding:15px;
+box-shadow:0 5px 15px rgba(0,0,0,0.1);
+}
+
+.card h3{
+font-size:13px;
+margin-bottom:10px;
+color:#666;
+}
+
+.number{
+font-size:32px;
+font-weight:700;
+}
+
+.grid{
+display:grid;
+grid-template-columns:2fr 1fr;
+gap:20px;
+}
+
+.title{
+font-size:24px;
+font-weight:700;
+margin-bottom:20px;
+color:#0036a3;
+}
+
+input,select,textarea{
+width:100%;
+padding:12px;
+border-radius:12px;
+border:1px solid #ccc;
+margin-bottom:12px;
+}
+
+textarea{
+resize:none;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:15px;
+}
+
+table th{
+background:#eef2ff;
+padding:10px;
+font-size:13px;
+}
+
+table td{
+padding:10px;
+border-bottom:1px solid #eee;
+text-align:center;
+font-size:13px;
+}
+
+.product-img{
+width:60px;
+height:60px;
+object-fit:cover;
+border-radius:10px;
+}
+
+.flex{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+}
+
+.flex>*{
+flex:1;
+}
+
+.status-aman{
+background:#16b14b;
+color:white;
+padding:5px 8px;
+border-radius:8px;
+font-size:11px;
+}
+
+.status-warning{
+background:#ff3b57;
+color:white;
+padding:5px 8px;
+border-radius:8px;
+font-size:11px;
+}
+
+@media(max-width:900px){
+.grid{
+grid-template-columns:1fr;
+}
+}
+
+@media(max-width:768px){
+.topbar{
+justify-content:center;
+}
+
+.top-menu{
+justify-content:center;
+width:100%;
+}
+
+.main{
+padding:10px;
+}
+
+table{
+font-size:12px;
+display:block;
+overflow:auto;
+}
+}
+</style>
+</head>
+<body>
+
+<div class="top-login">
+
+<button class="btn" onclick="loginGoogle()">
+Login Google
+</button>
+
+<button class="btn btn-red" onclick="logoutGoogle()">
+Logout
+</button>
+
+<div id="userLogin"></div>
+
+</div>
+
+<div class="topbar">
+<div class="logo">SHAF</div>
+
+<div class="top-menu">
+<button onclick="showPage('dashboardPage')">🏠 Dashboard</button>
+<button onclick="showPage('produkPage')">📦 Produk</button>
+<button onclick="showPage('riwayatPage')">🕘 Riwayat</button>
+</div>
+</div>
+
+<div class="main">
+
+<div id="dashboardPage" class="page">
+
+<div class="top-card">
+<div class="card">
+<h3>Total Produk</h3>
+<div class="number" id="totalBarang">0</div>
+</div>
+
+<div class="card">
+<h3>Barang Masuk</h3>
+<div class="number" style="color:#16b14b" id="stokMasuk">0</div>
+</div>
+
+<div class="card">
+<h3>Barang Keluar</h3>
+<div class="number" style="color:#ff3b57" id="stokKeluar">0</div>
+</div>
+
+<div class="card">
+<h3>Total Stok</h3>
+<div class="number" style="color:#7b2fff" id="totalStok">0</div>
+</div>
+</div>
+
+<div class="box">
+<div class="title">➕ Tambah Produk Baru</div>
+
+<input type="text" id="kodeBarang" placeholder="Kode Produk">
+<input type="text" id="namaBarang" placeholder="Nama Produk">
+<input type="number" id="jumlahBarang" placeholder="Jumlah Stok">
+<input type="number" id="minimalStok" placeholder="Minimal Stok Warning">
+<input type="file" id="gambarBarang" accept="image/*">
+
+<button class="btn" onclick="tambahBarang()">
++ Tambah Barang
+</button>
+</div>
+</div>
+
+<div id="produkPage" class="page" style="display:none;">
+<div class="grid">
+
+<div class="box">
+<div class="title">📦 Data Produk</div>
+
+<div class="flex">
+<input type="text" id="searchInput" placeholder="Cari Produk" onkeyup="renderProduk()">
+
+<select id="filterStatus" onchange="renderProduk()">
+<option value="Semua">Semua</option>
+<option value="Aman">Aman</option>
+<option value="Habis">Hampir Habis</option>
+</select>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>No</th>
+<th>Foto</th>
+<th>Kode</th>
+<th>Nama</th>
+<th>Stok</th>
+<th>Minimal</th>
+<th>Status</th>
+<th>Aksi</th>
+</tr>
+</thead>
+<tbody id="produkTable"></tbody>
+</table>
+</div>
+
+<div class="box">
+<div class="title">📝 Transaksi</div>
+
+<select id="pilihBarang"></select>
+
+<select id="jenisTransaksi">
+<option value="Masuk">Barang Masuk</option>
+<option value="Keluar">Barang Keluar</option>
+</select>
+
+<input type="number" id="jumlahTransaksi" placeholder="Jumlah">
+<textarea id="keterangan" placeholder="Keterangan"></textarea>
+
+<button class="btn" style="width:100%" onclick="simpanTransaksi()">
+💾 Simpan Transaksi
+</button>
+
+<br><br>
+
+<div class="flex">
+<button class="btn btn-green" onclick="backupData()">⬇ Backup</button>
+
+<label class="btn btn-orange">
+⬆ Restore
+<input type="file" hidden onchange="restoreData(event)">
+</label>
+</div>
+</div>
+</div>
+</div>
+
+<div id="riwayatPage" class="page" style="display:none;">
+<div class="box">
+<div class="title">🕘 Riwayat Transaksi</div>
+
+<table>
+<thead>
+<tr>
+<th>Tanggal</th>
+<th>Produk</th>
+<th>Jenis</th>
+<th>Jumlah</th>
+<th>Keterangan</th>
+</tr>
+</thead>
+<tbody id="historyTable"></tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+<script>
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC5WyoFNCzQwamQBUtm-pgq0K75jGYMBAQ",
+  authDomain: "shaf-design.firebaseapp.com",
+  projectId: "shaf-design",
+  storageBucket: "shaf-design.firebasestorage.app",
+  messagingSenderId: "592703493315",
+  appId: "1:592703493315:web:7894c17e5b1bb2ba0d3e76",
+  measurementId: "G-1SKQT0B5DT"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const firestore = firebase.firestore();
+
+let produk = [];
+let riwayat = [];
+
+function showPage(pageId){
+
+    document.querySelectorAll('.page').forEach(page=>{
+        page.style.display='none';
+    });
+
+    document.getElementById(pageId).style.display='block';
+}
+
+async function loginGoogle(){
+
+    const provider = new firebase.auth.GoogleAuthProvider();
+
+    try{
+
+        await auth.signInWithPopup(provider);
+
+    }catch(err){
+
+        alert(err.message);
+
+    }
+}
+
+async function logoutGoogle(){
+
+    await auth.signOut();
+
+}
+
+auth.onAuthStateChanged(async(user)=>{
+
+    if(user){
+
+        document.getElementById('userLogin').innerHTML = '👤 '+user.displayName;
+
+        loadCloudData();
+
+    }else{
+
+        document.getElementById('userLogin').innerHTML = 'Belum Login';
+
+    }
+
+});
+
+async function simpanCloudData(){
+
+    try{
+
+        await firestore.collection('stok').doc('database').set({
+            produk,
+            riwayat,
+            updated:Date.now()
+        });
+
+        console.log('Cloud tersimpan');
+
+    }catch(err){
+
+        console.log(err);
+        alert('Gagal simpan cloud');
+
+    }
+
+}
+
+function loadCloudData(){
+
+    firestore
+    .collection('stok')
+    .doc('database')
+    .onSnapshot((doc)=>{
+
+        if(doc.exists){
+
+            const data = doc.data();
+
+            produk = data.produk || [];
+            riwayat = data.riwayat || [];
+
+            renderProduk();
+            renderRiwayat();
+            updateDashboard();
+
+        }
+
+    });
+
+}
+
+function updateDashboard(){
+
+    document.getElementById('totalBarang').innerText = produk.length;
+
+    let total = 0;
+
+    produk.forEach(item=>{
+        total += Number(item.stok);
+    });
+
+    document.getElementById('totalStok').innerText = total;
+
+    let masuk = 0;
+    let keluar = 0;
+
+    riwayat.forEach(item=>{
+
+        if(item.jenis === 'Masuk') masuk += Number(item.jumlah);
+
+        if(item.jenis === 'Keluar') keluar += Number(item.jumlah);
+
+    });
+
+    document.getElementById('stokMasuk').innerText = masuk;
+    document.getElementById('stokKeluar').innerText = keluar;
+
+}
+
+function tambahBarang(){
+
+    const kode = document.getElementById('kodeBarang').value.trim();
+    const nama = document.getElementById('namaBarang').value.trim();
+    const stok = Number(document.getElementById('jumlahBarang').value);
+    const minimal = Number(document.getElementById('minimalStok').value);
+
+    const file = document.getElementById('gambarBarang').files[0];
+
+    if(!kode || !nama){
+        alert('Lengkapi data');
+        return;
+    }
+
+    function simpanProduk(gambar=''){
+
+        produk.push({
+            id:Date.now(),
+            kode,
+            nama,
+            stok,
+            minimal,
+            gambar
+        });
+
+        riwayat.unshift({
+            id:Date.now(),
+            tanggal:new Date().toISOString(),
+            produk:nama,
+            jenis:'Produk Baru',
+            jumlah:stok,
+            keterangan:'Produk baru ditambahkan'
+        });
+
+        simpanCloudData();
+        renderProduk();
+        renderRiwayat();
+        updateDashboard();
+
+        document.getElementById('kodeBarang').value='';
+        document.getElementById('namaBarang').value='';
+        document.getElementById('jumlahBarang').value='';
+        document.getElementById('minimalStok').value='';
+        document.getElementById('gambarBarang').value='';
+
+        alert('Produk berhasil ditambahkan');
+
+    }
+
+    if(file){
+
+        const reader = new FileReader();
+
+        reader.onload = function(e){
+            simpanProduk(e.target.result);
+        }
+
+        reader.readAsDataURL(file);
+
+    }else{
+
+        simpanProduk();
+
+    }
+
+}
+
+function renderProduk(){
+
+    const tbody = document.getElementById('produkTable');
+    const pilih = document.getElementById('pilihBarang');
+
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const filter = document.getElementById('filterStatus').value;
+
+    tbody.innerHTML='';
+    pilih.innerHTML='';
+
+    produk.forEach((item,index)=>{
+
+        if(!item.nama.toLowerCase().includes(search) && !item.kode.toLowerCase().includes(search)){
+            return;
+        }
+
+        if(filter==='Aman' && item.stok <= item.minimal) return;
+        if(filter==='Habis' && item.stok > item.minimal) return;
+
+        const status = item.stok <= item.minimal
+        ? '<span class="status-warning">Hampir Habis</span>'
+        : '<span class="status-aman">Aman</span>';
+
+        tbody.innerHTML += `
+        <tr>
+        <td>${index+1}</td>
+        <td>${item.gambar ? `<img src="${item.gambar}" class="product-img">` : '-'}</td>
+        <td>${item.kode}</td>
+        <td>${item.nama}</td>
+        <td>${item.stok}</td>
+        <td>${item.minimal}</td>
+        <td>${status}</td>
+        <td>
+        <button class="btn btn-red" onclick="hapusBarang(${index})">
+        Hapus
+        </button>
+        </td>
+        </tr>`;
+
+        pilih.innerHTML += `<option value="${index}">${item.kode} - ${item.nama}</option>`;
+
+    });
+
+}
+
+function hapusBarang(index){
+
+    if(confirm('Hapus produk ini?')){
+
+        riwayat.unshift({
+            id:Date.now(),
+            tanggal:new Date().toISOString(),
+            produk:produk[index].nama,
+            jenis:'Hapus Produk',
+            jumlah:0,
+            keterangan:'Produk dihapus'
+        });
+
+        produk.splice(index,1);
+
+        simpanCloudData();
+        renderProduk();
+        renderRiwayat();
+        updateDashboard();
+
+    }
+
+}
+
+function simpanTransaksi(){
+
+    const index = document.getElementById('pilihBarang').value;
+    const jenis = document.getElementById('jenisTransaksi').value;
+    const jumlah = Number(document.getElementById('jumlahTransaksi').value);
+    const ket = document.getElementById('keterangan').value;
+
+    if(jumlah<=0){
+        alert('Jumlah tidak valid');
+        return;
+    }
+
+    if(jenis==='Keluar'){
+
+        if(produk[index].stok < jumlah){
+            alert('Stok tidak cukup');
+            return;
+        }
+
+        produk[index].stok -= jumlah;
+
+    }else{
+
+        produk[index].stok += jumlah;
+
+    }
+
+    riwayat.unshift({
+        id:Date.now(),
+        tanggal:new Date().toISOString(),
+        produk:produk[index].nama,
+        jenis,
+        jumlah,
+        keterangan:ket
+    });
+
+    simpanCloudData();
+    renderProduk();
+    renderRiwayat();
+    updateDashboard();
+
+    document.getElementById('jumlahTransaksi').value='';
+    document.getElementById('keterangan').value='';
+
+}
+
+function renderRiwayat(){
+
+    const tbody = document.getElementById('historyTable');
+
+    tbody.innerHTML='';
+
+    riwayat.forEach(item=>{
+
+        tbody.innerHTML += `
+        <tr>
+        <td>${new Date(item.tanggal).toLocaleString('id-ID')}</td>
+        <td>${item.produk}</td>
+        <td>${item.jenis}</td>
+        <td>${item.jumlah}</td>
+        <td>${item.keterangan}</td>
+        </tr>`;
+
+    });
+
+}
+
+function backupData(){
+
+    const data = {produk,riwayat};
+
+    const blob = new Blob([JSON.stringify(data,null,2)],{
+        type:'application/json'
+    });
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+
+    a.href = url;
+    a.download = 'backup-shaf.json';
+    a.click();
+
+}
+
+function restoreData(event){
+
+    const file = event.target.files[0];
+
+    if(!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function(e){
+
+        const data = JSON.parse(e.target.result);
+
+        produk = data.produk || [];
+        riwayat = data.riwayat || [];
+
+        simpanCloudData();
+        renderProduk();
+        renderRiwayat();
+        updateDashboard();
+
+        alert('Restore berhasil');
+
+    }
+
+    reader.readAsText(file);
+
+}
+
+</script>
+
+</body>
+</html>
